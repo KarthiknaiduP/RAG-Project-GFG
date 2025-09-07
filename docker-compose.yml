@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  back-end:
+    build:
+      context: .
+      dockerfile: Back-end(Flask)/Dockerfile
+    ports:
+      - "5000:5000"
+    networks:
+      - chromadb_network
+    depends_on:
+      - pull_model
+      - ollama
+
+  front_end:
+    build:
+      context: .
+      dockerfile: Front-end(NextJS)/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - back-end
+    networks:
+      - chromadb_network
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    networks:
+      - chromadb_network
+    volumes:
+      - ollama_model_data:/root/.ollama/models/
+    
+  pull_model:
+    image: python:3.8-slim
+    depends_on:
+      - ollama
+    networks:
+      - chromadb_network
+    command: >
+      bash -c "apt-get update && apt-get install -y curl && curl -X POST -H 'Content-Type: application/json' -d '{\"name\":\"gemma:2b-instruct\"}' http://ollama:11434/api/pull"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    depends_on:
+      - back-end
+    environment:
+      - REDIS_PORT=6379
+    networks:
+      - chromadb_network
+
+
+
+networks:
+  chromadb_network:
+    driver: bridge
+
+volumes:
+  ollama_model_data:
+    driver : local
