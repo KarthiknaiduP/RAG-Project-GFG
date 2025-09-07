@@ -1,0 +1,3 @@
+langchain
+chromadb # Vector storage
+redis
